@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "huashijie"
+version = "1.0.0"
+description = ""
+authors = ["yzqzss <yzqzss@yandex.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+requests = "^2.31.0"
+bson = "^0.5.10"
+
+[tool.poetry.scripts]
+huashijie_work = "huashijie.huashijie_work:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
