@@ -48,7 +48,7 @@ TRACKER_NODES = [
     "https://0.tracker.saveweb.org/",
     "https://1.tracker.saveweb.org/",
     "https://2.tracker.saveweb.org/",
-    "https://3.tracker.saveweb.org/",
+    "http://3.tracker.saveweb.org/",
 ]
 
 TEST_TRACKER_NODES = [
@@ -56,8 +56,7 @@ TEST_TRACKER_NODES = [
 ]
 
 class Tracker:
-    API_BASE = TRACKER_NODES[0]
-    # API_BASE = TEST_TRACKER_NODES[0]
+    API_BASE: str = TEST_TRACKER_NODES[0]
     API_VERSION = "v1"
     client_version: str
     project_id: str
@@ -82,7 +81,9 @@ class Tracker:
         self.archivist = archivist
         self.session = session
 
-        assert self.project.client.version == self.client_version, "client_version mismatch"
+        self.select_best_tracker()
+
+        assert self.project.client.version == self.client_version, "client_version mismatch, please upgrade your client."
 
         print(f"[tracker] Hello, {self.archivist}!")
         print(f"[tracker] Project: {self.project}")
@@ -97,6 +98,32 @@ class Tracker:
             self.__project = self.fetch_project()
             self.__project_last_fetched = time.time()
         return copy.deepcopy(self.__project)
+    
+    def select_best_tracker(self):
+        result = [] # [(node, ping)]
+        print("[client->trackers] select_best_tracker...")
+        for node in TRACKER_NODES:
+            try:
+                self.session.get(node + 'ping', timeout=0.05) # DNS preload, dirty hack
+            except Exception:
+                pass
+
+        for node in TRACKER_NODES:
+            print(f"[client->tracker({node})] ping...")
+            start = time.time()
+            try:
+                r = self.session.get(node + 'ping', timeout=5)
+                r.raise_for_status()
+                print(f"[client<-tracker({node})] ping OK. {time.time() - start:.2f}s")
+                result.append((node, time.time() - start))
+            except Exception as e:
+                print(f"[client->tracker({node}) ping failed. {type(e)}")
+                result.append((node, float('inf')))
+        result.sort(key=lambda x: x[1])
+        self.API_BASE = result[0][0]
+        print("===============================")
+        print(f"tracker selected: {self.API_BASE}")
+        print("===============================")
 
     def fetch_project(self):
         """
@@ -131,6 +158,7 @@ class Tracker:
                     time.sleep(sleep_need)
                 elif sleep_need < 0:
                     print(f"[tracker] you are {sleep_need:.2f}s late, Qos: {self.project.client.claim_task_delay}")
+
         print("[client->tracker] claim_task")
         start = time.time()
         r = self.session.post(f'{self.API_BASE}{self.API_VERSION}/project/{self.project_id}/{self.client_version}/{self.archivist}/claim_task')
@@ -142,7 +170,7 @@ class Tracker:
             r_json = r.json()
             print(f'[client<-tracker] claim_task. OK (time cost: {time.time() - start:.2f}s):', r_json)
             return r_json
-        raise Exception(r.text)
+        raise Exception(r.status_code, r.text)
     
     def update_task(self, task_id: Union[str, int], status: str)->Dict[str, Any]:
         """

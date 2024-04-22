@@ -84,7 +84,12 @@ def process(tracker: Tracker, TASK: Task):
         raise NotImplementedError(r.text)
 
 def main():
+    print("zh: 为避免您的节点被 ban，请不要使用相同 IP 多开同一个项目！")
+    print("en: To avoid being banned, please do not run concurrently on the same project with the same IP!")
+
     archivist = get_archivist() or new_archivist()
+
+    time.sleep(1) # avoid infinite restart consume too much CPU
     tracker = Tracker(project_id="huashijie_work", client_version=VERSION, archivist=archivist, session=session)
 
     while True:

@@ -2,8 +2,6 @@ from typing import Optional
 from dataclasses import dataclass
 from datetime import datetime
 
-from bson import ObjectId
-
 class Status:
     TODO = "TODO"
     PROCESSING = "PROCESSING"
@@ -16,7 +14,8 @@ class Status:
 
 @dataclass
 class Task:
-    _id: ObjectId
+    _id: str
+    """ ObjectID """
     id: int
     status: Status
     archivist: str
